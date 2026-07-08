@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/widgets/kpi_card.dart';
+import '../../auth/screens/role_selection.dart';
 import 'reconciliation_queue.dart';
 import 'students_directory.dart';
 import 'admin_analytics.dart';
@@ -106,7 +107,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         actions: [
           IconButton(
             onPressed: () {
-              Navigator.popUntil(context, (route) => route.isFirst);
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
+                (route) => false,
+              );
             },
             icon: const Icon(Icons.logout_rounded),
             tooltip: "Switch Portal",

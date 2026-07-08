@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/colors.dart';
 import '../../../models/student.dart';
 import '../../../models/transaction.dart';
+import '../../auth/screens/role_selection.dart';
 import 'fee_details.dart';
 import 'notifications.dart';
 import 'parent_profile.dart';
@@ -147,7 +148,11 @@ class _ParentDashboardState extends State<ParentDashboard> {
                       IconButton(
                         onPressed: () {
                           // Go back to login/portal switcher
-                          Navigator.pop(context);
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
+                            (route) => false,
+                          );
                         },
                         icon: const Icon(Icons.logout_rounded),
                         tooltip: "Switch Portal",
