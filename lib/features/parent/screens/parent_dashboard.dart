@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/colors.dart';
 import '../../../models/student.dart';
 import '../../../models/transaction.dart';
+import '../../../core/services/mock_database.dart';
 import '../../auth/screens/role_selection.dart';
 import 'fee_details.dart';
 import 'notifications.dart';
@@ -20,90 +21,68 @@ class ParentDashboard extends StatefulWidget {
 class _ParentDashboardState extends State<ParentDashboard> {
   int _currentIndex = 0;
 
-  // Mock Transactions for this student
-  late List<PaymentTransaction> _transactions;
-
-  @override
-  void initState() {
-    super.initState();
-    _transactions = [
-      PaymentTransaction(
-        id: "txn_101",
-        studentId: widget.student.id,
-        studentName: widget.student.name,
-        feeName: "Term 1 Tuition Fee",
-        amount: 30500.0,
-        date: DateTime.now().subtract(const Duration(days: 45)),
-        status: "Verified",
-        method: "UPI",
-        utr: "UTR829402948293",
-        receiptNo: "REC-2026-9024",
-      ),
-      PaymentTransaction(
-        id: "txn_102",
-        studentId: widget.student.id,
-        studentName: widget.student.name,
-        feeName: "Quarterly Exam Fee",
-        amount: 1500.0,
-        date: DateTime.now().subtract(const Duration(days: 12)),
-        status: "Verified",
-        method: "Bank Transfer",
-        utr: "TXN928402948",
-        receiptNo: "REC-2026-9481",
-      ),
-    ];
-  }
+  Student get student => MockDatabase().getStudentById(widget.student.id) ?? widget.student;
+  List<PaymentTransaction> get _transactions => MockDatabase().getTransactionsForStudent(student.id);
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final List<Widget> tabs = [
-      _buildHomeTab(context, isDark),
-      FeeDetailsScreen(student: widget.student),
-      NotificationsScreen(student: widget.student),
-      ParentProfileScreen(student: widget.student, transactionHistory: _transactions),
-    ];
+    return AnimatedBuilder(
+      animation: MockDatabase(),
+      builder: (context, _) {
+        final currentStudent = student;
+        final currentTransactions = _transactions;
 
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: tabs,
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: "Home",
+        final List<Widget> tabs = [
+          _buildHomeTab(context, isDark),
+          FeeDetailsScreen(student: currentStudent),
+          NotificationsScreen(student: currentStudent),
+          ParentProfileScreen(student: currentStudent, transactionHistory: currentTransactions),
+        ];
+
+        return Scaffold(
+          body: IndexedStack(
+            index: _currentIndex,
+            children: tabs,
           ),
-          NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long),
-            label: "Fees",
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: _currentIndex,
+            onDestinationSelected: (index) {
+              setState(() {
+                _currentIndex = index;
+              });
+            },
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.home_outlined),
+                selectedIcon: Icon(Icons.home),
+                label: "Home",
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.receipt_long_outlined),
+                selectedIcon: Icon(Icons.receipt_long),
+                label: "Fees",
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.notifications_none_outlined),
+                selectedIcon: Icon(Icons.notifications),
+                label: "Alerts",
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.person_outline),
+                selectedIcon: Icon(Icons.person),
+                label: "Profile",
+              ),
+            ],
           ),
-          NavigationDestination(
-            icon: Icon(Icons.notifications_none_outlined),
-            selectedIcon: Icon(Icons.notifications),
-            label: "Alerts",
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: "Profile",
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
   Widget _buildHomeTab(BuildContext context, bool isDark) {
+    final widget = this;
     final theme = Theme.of(context);
     final formattedPending = "₹${widget.student.pendingAmount.toStringAsFixed(0)}";
     final isPending = widget.student.pendingAmount > 0;

@@ -1,34 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/colors.dart';
 import '../../../models/student.dart';
+import '../../../core/services/mock_database.dart';
 import 'parent_dashboard.dart';
 
 class ChildSelectionScreen extends StatelessWidget {
   const ChildSelectionScreen({super.key});
-
-  // Mock children data
-  static const List<Student> children = [
-    Student(
-      id: "stud_1",
-      name: "Rahul Sharma",
-      rollNo: "GIS/2026/084",
-      grade: "Grade 8-A",
-      schoolName: "Greenwood International School",
-      avatarUrl: "https://api.dicebear.com/7.x/adventurer/svg?seed=Rahul",
-      pendingAmount: 14500.0,
-      totalAmount: 45000.0,
-    ),
-    Student(
-      id: "stud_2",
-      name: "Sneha Sharma",
-      rollNo: "GIS/2026/112",
-      grade: "Grade 5-B",
-      schoolName: "Greenwood International School",
-      avatarUrl: "https://api.dicebear.com/7.x/adventurer/svg?seed=Sneha",
-      pendingAmount: 4200.0,
-      totalAmount: 38000.0,
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -67,11 +44,21 @@ class ChildSelectionScreen extends StatelessWidget {
               const SizedBox(height: 40),
               
               Expanded(
-                child: ListView.builder(
-                  itemCount: children.length,
-                  itemBuilder: (context, index) {
-                    final child = children[index];
-                    return _buildChildCard(context, child, isDark);
+                child: AnimatedBuilder(
+                  animation: MockDatabase(),
+                  builder: (context, _) {
+                    final db = MockDatabase();
+                    final parentChildren = db.students.where((s) {
+                      return s.id == "stud_1" || s.id == "stud_2" || s.id.startsWith("stud_custom");
+                    }).toList();
+
+                    return ListView.builder(
+                      itemCount: parentChildren.length,
+                      itemBuilder: (context, index) {
+                        final child = parentChildren[index];
+                        return _buildChildCard(context, child, isDark);
+                      },
+                    );
                   },
                 ),
               ),

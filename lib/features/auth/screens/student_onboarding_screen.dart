@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/colors.dart';
 import '../../../models/student.dart';
+import '../../../core/services/mock_database.dart';
 import '../../parent/screens/parent_dashboard.dart';
 
 class StudentOnboardingScreen extends StatefulWidget {
@@ -55,6 +56,9 @@ class _StudentOnboardingScreenState extends State<StudentOnboardingScreen> {
         pendingAmount: 14500.0,
         totalAmount: 45000.0,
       );
+
+      // Save to shared database
+      MockDatabase().addStudent(student);
 
       setState(() {
         _isLoading = false;
