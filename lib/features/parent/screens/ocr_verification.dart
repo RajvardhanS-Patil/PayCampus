@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/colors.dart';
 import '../../../models/student.dart';
+import '../../../core/services/mock_database.dart';
+import '../../../core/services/ocr_service.dart';
+import '../../../core/widgets/shimmer.dart';
 import 'receipt_screen.dart';
 
 class OcrVerificationScreen extends StatefulWidget {
@@ -23,8 +26,9 @@ class _OcrVerificationScreenState extends State<OcrVerificationScreen>
   late Animation<double> _scannerAnimation;
   
   String _currentStep = 'Processing'; // Processing, Matched, Verified
-  double _overallProgress = 0.15;
   String _statusText = 'Initializing AI OCR Engine...';
+  double _extractedAmount = 0.0;
+  String _extractedUtr = 'UTR829402948293';
 
   @override
   void initState() {
@@ -43,20 +47,46 @@ class _OcrVerificationScreenState extends State<OcrVerificationScreen>
 
   void _runOcrSequence() async {
     // Step 1: Processing OCR
-    await Future.delayed(const Duration(milliseconds: 1500));
+    setState(() {
+      _currentStep = 'Processing';
+      _statusText = 'Scanning image with Gemini AI...';
+    });
+
+    final ocrResults = await OcrService().parseReceipt(
+      widget.fileName,
+      expectedAmount: widget.student.pendingAmount,
+    );
+
     if (!mounted) return;
+
+    final double extractedAmount = ocrResults['amount'] ?? widget.student.pendingAmount;
+    final String extractedUtr = ocrResults['utr'] ?? 'UTR829402948293';
+    final double confidence = ocrResults['confidence'] ?? 0.98;
+
     setState(() {
       _currentStep = 'Matched';
-      _overallProgress = 0.60;
-      _statusText = 'Extracting UTR: 829402948293\nExpected Amount Matches (₹${widget.student.pendingAmount})';
+      _extractedAmount = extractedAmount;
+      _extractedUtr = extractedUtr;
+      _statusText = 'Extracted UTR: $extractedUtr\nExtracted Amount: ₹${extractedAmount.toStringAsFixed(0)} (${(confidence * 100).toStringAsFixed(0)}% confidence)';
     });
 
     // Step 2: Verification matching
-    await Future.delayed(const Duration(milliseconds: 1800));
+    await Future.delayed(const Duration(milliseconds: 1500));
     if (!mounted) return;
+
+    // Record verified transaction in the database
+    MockDatabase().recordInstantPayment(
+      studentId: widget.student.id,
+      studentName: widget.student.name,
+      grade: widget.student.grade,
+      feeName: "Term 2 Tuition Fee",
+      amount: _extractedAmount,
+      utr: _extractedUtr,
+      method: "UPI / PhonePe",
+    );
+
     setState(() {
       _currentStep = 'Verified';
-      _overallProgress = 1.0;
       _statusText = 'Transaction Ledger Updated Successfully.';
     });
   }
@@ -125,29 +155,26 @@ class _OcrVerificationScreenState extends State<OcrVerificationScreen>
                             padding: const EdgeInsets.all(16),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
+                              children: const [
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Container(width: 80, height: 16, color: Colors.grey[400]),
-                                    Container(width: 40, height: 16, color: Colors.grey[400]),
+                                    ShimmerPlaceholder(width: 80, height: 16),
+                                    ShimmerPlaceholder(width: 40, height: 16),
                                   ],
                                 ),
-                                const SizedBox(height: 24),
-                                Container(width: 120, height: 28, color: Colors.grey[400]),
-                                const SizedBox(height: 16),
-                                Container(width: 200, height: 12, color: Colors.grey[300]),
-                                const SizedBox(height: 8),
-                                Container(width: 150, height: 12, color: Colors.grey[300]),
-                                const Spacer(),
+                                SizedBox(height: 24),
+                                ShimmerPlaceholder(width: 120, height: 28),
+                                SizedBox(height: 16),
+                                ShimmerPlaceholder(width: 200, height: 12),
+                                SizedBox(height: 8),
+                                ShimmerPlaceholder(width: 150, height: 12),
+                                Spacer(),
                                 Center(
-                                  child: Container(
+                                  child: ShimmerPlaceholder(
                                     width: 80,
                                     height: 80,
-                                    decoration: BoxDecoration(
-                                      border: Border.all(color: Colors.grey[400]!, width: 2),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
+                                    borderRadius: 8,
                                   ),
                                 ),
                               ],
@@ -263,9 +290,9 @@ class _OcrVerificationScreenState extends State<OcrVerificationScreen>
                             MaterialPageRoute(
                               builder: (context) => ReceiptScreen(
                                 student: widget.student,
-                                transactionId: "UTR829402948293",
+                                transactionId: _extractedUtr,
                                 feeName: "Term 2 Tuition Fee",
-                                amount: widget.student.pendingAmount,
+                                amount: _extractedAmount,
                                 date: DateTime.now(),
                                 paymentMethod: "UPI / PhonePe",
                               ),
